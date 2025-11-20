@@ -1,0 +1,935 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  MoreVertical, ArrowLeft, Zap, Lightbulb, Trash2, LogOut, PlusCircle, 
+  Settings, X, Search, UserPlus, Aperture, Menu, Contact, Camera, 
+  Heart, MessageSquare, Edit3, Save, Image as ImageIcon, QrCode, 
+  ImageIcon as PictureIcon, Eye, Lock, Info, Star, CheckCircle, 
+  MessageCircle, Gamepad2, AlertTriangle, Megaphone, Code, Send, 
+  Smile, Mic, ExternalLink, Loader2
+} from 'lucide-react';
+
+// --- FIREBASE IMPORTS ---
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  signInWithCustomToken,
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  onSnapshot,
+  query, 
+  orderBy,
+  serverTimestamp
+} from 'firebase/firestore';
+
+// --- INITIAL MOCK DATA (UPDATED REAL IMAGES) ---
+const NEARBY_USERS = [
+  { id: 1, name: 'dwiitok', distance: '5 km', status: 'shopping', avatar: 'https://images.unsplash.com/photo-1583336137348-cde425f5ef07?w=150&h=150&fit=crop&q=80', isOnline: true, verified: true },
+  { id: 2, name: 'trondol', distance: '7 km', status: '😊', avatar: 'https://images.unsplash.com/photo-1616701825388-6f8242e8842d?w=150&h=150&fit=crop&q=80', isOnline: false, verified: false },
+  { id: 3, name: 'Nadia', distance: '9 km', status: 'stay kos', avatar: 'https://images.unsplash.com/photo-1614200187303-88944131c0b7?w=150&h=150&fit=crop&q=80', isOnline: true, verified: true },
+  { id: 4, name: 'Putriii', distance: '9 km', status: 'YANG SERIUS AJA', avatar: 'https://images.unsplash.com/photo-1621012430307-b4774b78d3cb?w=150&h=150&fit=crop&q=80', isOnline: true, verified: true },
+  { id: 5, name: 'tiara', distance: '13 km', status: '😅', avatar: 'https://images.unsplash.com/photo-1596318688606-19c2c4b69f9e?w=150&h=150&fit=crop&q=80', isOnline: false, verified: false },
+  { id: 6, name: 'ega s', distance: '13 km', status: 'keep', avatar: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=150&h=150&fit=crop&q=80', isOnline: false, verified: false },
+  { id: 7, name: 'Aulia april', distance: '14 km', status: 'ready🥰', avatar: 'https://images.unsplash.com/photo-1564460576398-ef55d99548a2?w=150&h=150&fit=crop&q=80', isOnline: true, verified: false },
+];
+
+const CHAT_LIST = [
+  { id: 1, name: 'Aulia april', message: 'Cek link ini: https://google.com', time: '12:44 AM', unread: 2, avatar: 'https://images.unsplash.com/photo-1564460576398-ef55d99548a2?w=150&h=150&fit=crop&q=80' },
+  { id: 2, name: 'Admin Official', message: 'Selamat datang di MiChat!', time: 'Yesterday', unread: 0, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&q=80' },
+  // 5 Chat Tambahan Baru
+  { id: 3, name: 'Sinta', message: 'Hai kak, boleh kenalan?', time: '10:30 PM', unread: 1, avatar: 'https://images.unsplash.com/photo-1583336137348-cde425f5ef07?w=150&h=150&fit=crop&q=80' },
+  { id: 4, name: 'Rina Wati', message: 'Besok jadi jalan gak?', time: '09:15 PM', unread: 3, avatar: 'https://images.unsplash.com/photo-1614200187303-88944131c0b7?w=150&h=150&fit=crop&q=80' },
+  { id: 5, name: 'Maya Sari', message: 'Info loker terbaru nih https://jobstreet.co.id', time: '08:00 PM', unread: 0, avatar: 'https://images.unsplash.com/photo-1621012430307-b4774b78d3cb?w=150&h=150&fit=crop&q=80' },
+  { id: 6, name: 'Dinda Gemoy', message: 'Pap dong kak 😊', time: '07:45 PM', unread: 5, avatar: 'https://images.unsplash.com/photo-1596318688606-19c2c4b69f9e?w=150&h=150&fit=crop&q=80' },
+  { id: 7, name: 'Citra Kirana', message: 'Jangan lupa makan ya sayang', time: '06:30 PM', unread: 1, avatar: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=150&h=150&fit=crop&q=80' }
+];
+
+const INITIAL_MOMENTS = [
+  { id: 1, name: 'Nadia', avatar: 'https://images.unsplash.com/photo-1614200187303-88944131c0b7?w=150&h=150&fit=crop&q=80', content: 'Gabut nih, ada yang mau nemenin jalan?', image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500&auto=format&fit=crop&q=60', time: '5 menit yang lalu', likes: 12, comments: 4 },
+  { id: 2, name: 'trondol', avatar: 'https://images.unsplash.com/photo-1616701825388-6f8242e8842d?w=150&h=150&fit=crop&q=80', content: 'Info loker dong gan, area jakarta selatan.', image: null, time: '1 jam yang lalu', likes: 2, comments: 1 },
+  { id: 3, name: 'Putriii', avatar: 'https://images.unsplash.com/photo-1621012430307-b4774b78d3cb?w=150&h=150&fit=crop&q=80', content: 'Happy weekend everyone! 💖', image: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=500&auto=format&fit=crop&q=60', time: '3 jam yang lalu', likes: 45, comments: 10 }
+];
+
+// --- CONFIG IKLAN DEFAULT ---
+const DEFAULT_AD_CONFIG = {
+  banner: {
+    useHtml: false,
+    htmlContent: '<div style="background:red; color:white; padding:10px;">IKLAN HTML CUSTOM</div>',
+    text: '🔥 PROMO TERBATAS: TOP UP SEKARANG!',
+    colorFrom: 'blue-500',
+    colorTo: 'cyan-400'
+  },
+  native: {
+    useHtml: false,
+    htmlContent: '<div style="border:1px solid #ddd; padding:10px;">Native Ad Custom HTML</div>',
+    title: 'Aplikasi Kencan Premium',
+    desc: 'Temukan pasangan idamanmu sekarang juga!',
+    image: 'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?w=150&h=150&fit=crop&q=80',
+    label: 'Iklan'
+  },
+  anchor: {
+    useHtml: false,
+    htmlContent: '<div style="position:fixed; bottom:60px; width:100%; background:gold; text-align:center; padding:5px;">Sticky Ad HTML</div>',
+    title: 'Ojek Online Promo',
+    desc: 'Gratis Ongkir Rp0',
+    iconText: 'Go',
+    btnText: 'Buka'
+  },
+  profile: {
+    useHtml: false,
+    htmlContent: '<div style="height:200px; background:black; color:white; display:flex; align-items:center; justify-content:center;">BIG PROFILE AD HTML</div>',
+    title: 'Super Game 2025',
+    desc: 'Mainkan game RPG terbaru dengan grafis memukau. Download gratis sekarang!',
+    btnText: 'Mainkan Sekarang',
+    bgImage: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=60'
+  },
+  chat: {
+    useHtml: false,
+    htmlContent: '<div style="padding:10px; background:lightgreen;">IKLAN CHAT HTML</div>',
+    title: 'Promo Spesial Chat',
+    desc: 'Dapatkan diskon 50% khusus pengguna aktif!',
+    iconText: 'Hot',
+    btnText: 'Lihat'
+  },
+  chatBubble: {
+    useHtml: false,
+    htmlContent: '<div style="padding:5px; background:#f0f0f0;">Native Bubble Ad</div>',
+    title: 'Game Seru',
+    desc: 'Mainkan Sekarang!',
+    image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=100&auto=format&fit=crop&q=60',
+    btnText: 'Main'
+  }
+};
+
+// --- COMPONENT: IKLAN ---
+const AdBanner = ({ config }) => {
+  if (!config) return null;
+  if (config.useHtml) return <div dangerouslySetInnerHTML={{ __html: config.htmlContent }} />;
+  return (
+    <div className="w-full bg-gray-100 border-b border-gray-300 p-2 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      <div className="absolute top-0 right-0 bg-gray-300 text-[10px] px-1 text-gray-600">Iklan</div>
+      <div className={`w-full h-12 bg-gradient-to-r from-${config.colorFrom || 'blue-500'} to-${config.colorTo || 'cyan-400'} rounded flex items-center justify-center text-white text-sm font-bold shadow-sm`}>
+        {config.text}
+      </div>
+    </div>
+  );
+};
+
+const AdNative = ({ config }) => {
+  if (!config) return null;
+  if (config.useHtml) return <div dangerouslySetInnerHTML={{ __html: config.htmlContent }} />;
+  return (
+    <div className="flex items-center p-3 bg-yellow-50 border-y border-yellow-100">
+      <div className="w-10 h-10 rounded bg-gray-200 flex-shrink-0 overflow-hidden relative">
+        <img src={config.image} alt="Ad" className="w-full h-full object-cover" />
+      </div>
+      <div className="ml-3 flex-1">
+        <h3 className="font-bold text-gray-800 text-xs">{config.title}</h3>
+        <p className="text-[10px] text-gray-600 mt-0.5">{config.desc}</p>
+      </div>
+      <span className="bg-yellow-200 text-yellow-800 text-[9px] px-1.5 py-0.5 rounded">{config.label || 'Iklan'}</span>
+    </div>
+  );
+};
+
+const AdBigProfile = ({ config }) => {
+  if (!config) return null;
+  if (config.useHtml) return <div className="mt-2" dangerouslySetInnerHTML={{ __html: config.htmlContent }} />;
+  return (
+    <div className="relative w-full h-64 bg-gray-900 overflow-hidden flex flex-col items-center justify-center mt-2 group cursor-pointer">
+      <img src={config.bgImage} className="absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity group-hover:opacity-50" alt="bg-ad" />
+      <div className="absolute top-2 right-2 bg-black/40 text-white px-2 py-0.5 rounded text-[10px] border border-white/20 backdrop-blur-sm">Iklan</div>
+      <div className="relative z-10 flex flex-col items-center text-center px-6">
+        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl shadow-xl flex items-center justify-center mb-3 transform group-hover:scale-110 transition-transform duration-300">
+           <Gamepad2 size={32} className="text-white" />
+        </div>
+        <h3 className="text-white font-bold text-xl mb-1 shadow-sm tracking-wide">{config.title}</h3>
+        <p className="text-gray-200 text-xs mb-5 max-w-[250px] leading-relaxed">{config.desc}</p>
+        <button className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-10 rounded-full shadow-lg text-sm transition-all active:scale-95 border border-white/10">{config.btnText}</button>
+      </div>
+    </div>
+  );
+};
+
+const AdAnchor = ({ config, onClose, customClass }) => {
+  if (!config) return null;
+  if (config.useHtml) {
+    return (
+       <div className={`fixed left-0 right-0 z-[65] ${customClass || 'bottom-[60px]'}`}>
+         <div className="relative">
+            <button onClick={onClose} className="absolute -top-5 right-2 bg-gray-200 rounded-t px-2 py-0.5 text-xs text-gray-600 z-50">Tutup</button>
+            <div dangerouslySetInnerHTML={{ __html: config.htmlContent }} />
+         </div>
+       </div>
+    );
+  }
+  return (
+    <div className={`fixed left-0 right-0 bg-white border-t border-gray-300 shadow-lg z-[65] animate-slide-up max-w-md mx-auto ${customClass || 'bottom-[60px]'}`}>
+      <button onClick={onClose} className="absolute -top-5 right-2 bg-gray-200 rounded-t px-2 py-0.5 text-xs text-gray-600">Tutup</button>
+      <div className="p-2 flex items-center justify-between bg-gray-50">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs overflow-hidden px-1 text-center leading-none">{config.iconText}</div>
+          <div className="flex flex-col"><span className="text-xs font-bold text-gray-800">{config.title}</span><span className="text-[10px] text-orange-600">{config.desc}</span></div>
+        </div>
+        <button className="bg-orange-600 text-white text-[10px] px-3 py-1.5 rounded font-bold">{config.btnText}</button>
+      </div>
+    </div>
+  );
+};
+
+const AdChatBubbleNative = ({ config }) => {
+  if (!config) return null;
+  if (config.useHtml) return <div className="mt-2" dangerouslySetInnerHTML={{ __html: config.htmlContent }} />;
+  return (
+    <div className="mt-2 bg-gray-50 rounded-md border border-gray-200 p-1.5 flex items-center space-x-2 overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors">
+      <img src={config.image} alt="Ad" className="w-10 h-10 rounded object-cover flex-shrink-0 bg-gray-200" />
+      <div className="flex-1 min-w-0">
+        <h4 className="text-[11px] font-bold text-gray-800 truncate leading-tight">{config.title}</h4>
+        <p className="text-[9px] text-gray-500 truncate leading-tight">{config.desc}</p>
+      </div>
+      <button className="text-[9px] bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded font-bold flex-shrink-0">{config.btnText}</button>
+    </div>
+  );
+};
+
+// --- COMPONENT: CHAT ROOM POPUP ---
+const ChatRoom = ({ user, autoReplyText, onClose, chatAdConfig, chatBubbleAdConfig, adsEnabled }) => {
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+  const [showChatAd, setShowChatAd] = useState(false); 
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const formatMessage = (text) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-[#009688] underline hover:text-teal-700 break-all font-medium">
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const reply = {
+        id: Date.now(),
+        text: autoReplyText || "Halo, ada yang bisa dibantu? Cek profil aku ya https://michat.com",
+        sender: 'them',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        hasAd: true 
+      };
+      setMessages(prev => [...prev, reply]);
+      if (adsEnabled) setShowChatAd(true);
+    }, 1000); 
+    return () => clearTimeout(timer);
+  }, [autoReplyText, adsEnabled]);
+
+  const handleSend = () => {
+    if (!inputValue.trim()) return;
+    const newMessage = {
+      id: Date.now(),
+      text: inputValue,
+      sender: 'me',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setMessages(prev => [...prev, newMessage]);
+    setInputValue("");
+  };
+
+  return (
+    <div className="fixed inset-0 bg-gray-100 z-[60] flex flex-col animate-slide-left max-w-md mx-auto">
+      <div className="bg-[#009688] text-white px-3 py-2 flex items-center shadow-md flex-shrink-0">
+        <button onClick={onClose} className="mr-2"><ArrowLeft size={24} /></button>
+        <img src={user.avatar} className="w-10 h-10 rounded-full bg-gray-200 mr-3 object-cover" alt="av" />
+        <div className="flex-1">
+          <h3 className="font-bold text-base leading-tight">{user.name}</h3>
+          <p className="text-[10px] opacity-90">Online</p>
+        </div>
+        <div className="flex space-x-3"><UserPlus size={20} /><MoreVertical size={20} /></div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5] bg-opacity-30 pb-24 relative">
+         <div className="text-center text-[10px] text-gray-400 my-2">Hari Ini</div>
+         <div className="flex justify-center">
+            <div className="bg-yellow-100 text-gray-600 text-[10px] px-3 py-1 rounded-full shadow-sm">Pesan dan panggilan end-to-end terenkripsi.</div>
+         </div>
+         {messages.map(msg => (
+           <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[75%] px-3 py-1.5 rounded-lg shadow-sm relative ${msg.sender === 'me' ? 'bg-[#dcf8c6] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
+                 <p className="text-sm text-gray-800 whitespace-pre-wrap">{formatMessage(msg.text)}</p>
+                 {msg.hasAd && adsEnabled && <AdChatBubbleNative config={chatBubbleAdConfig} />}
+                 <span className="text-[9px] text-gray-500 block text-right mt-0.5">{msg.time}</span>
+              </div>
+           </div>
+         ))}
+         <div ref={messagesEndRef} />
+      </div>
+
+      {showChatAd && <AdAnchor config={chatAdConfig} onClose={() => setShowChatAd(false)} customClass="bottom-[56px] absolute w-full" />}
+
+      <div className="bg-white p-2 flex items-center shadow-inner-top z-[70] relative">
+        <PlusCircle size={24} className="text-gray-500 mr-2" />
+        <div className="flex-1 bg-gray-100 rounded-full flex items-center px-3 py-1.5 mx-1">
+           <input type="text" className="bg-transparent flex-1 outline-none text-sm text-gray-700" placeholder="Ketik pesan..." value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSend()} />
+           <Smile size={20} className="text-gray-400" />
+        </div>
+        {inputValue ? <button onClick={handleSend} className="text-[#009688] ml-1"><Send size={24} /></button> : <Mic size={24} className="text-gray-500 ml-1" />}
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN APP COMPONENT ---
+
+export default function App() {
+  // State Data (Now using Loading state initialy)
+  const [nearbyUsers, setNearbyUsers] = useState([]);
+  const [chatList, setChatList] = useState([]);
+  const [moments, setMoments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Firebase & Auth State
+  const [user, setUser] = useState(null);
+  
+  // Admin & UI States
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [clickCount, setClickCount] = useState(0);
+  
+  // Editing States
+  const [editingMomentId, setEditingMomentId] = useState(null);
+  const [momentForm, setMomentForm] = useState({ name: '', content: '', image: '' });
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [userForm, setUserForm] = useState({ name: '', distance: '', status: '', avatar: '', isOnline: false, verified: false });
+  const [editingChatId, setEditingChatId] = useState(null);
+  const [chatForm, setChatForm] = useState({ name: '', message: '', time: '', unread: 0, avatar: '' });
+
+  // Ad Management State
+  const [adsEnabled, setAdsEnabled] = useState(true);
+  const [adConfig, setAdConfig] = useState(DEFAULT_AD_CONFIG);
+  const [editingAdType, setEditingAdType] = useState('banner'); 
+  const [adEditForm, setAdEditForm] = useState({}); 
+  
+  // Chat Auto Reply State
+  const [autoReplyText, setAutoReplyText] = useState("Halo kaka, boleh kenalan? Cek link ini ya https://google.com 🥰");
+  const [activeChatUser, setActiveChatUser] = useState(null); 
+
+  // UI Navigation
+  const [activeTab, setActiveTab] = useState('chat'); 
+  const [showAnchor, setShowAnchor] = useState(true);
+  const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
+  const [showAdultModal, setShowAdultModal] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+
+  // --- FIREBASE INITIALIZATION & SYNC ---
+  const firebaseConfig = JSON.parse(__firebase_config);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+  // 1. Auth Flow
+  useEffect(() => {
+    const initAuth = async () => {
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Data Sync (Listen to Firestore)
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen Users
+    const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), 
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setNearbyUsers(data.length ? data : NEARBY_USERS); // Fallback to mock if empty
+        setIsLoading(false);
+      }, 
+      (error) => console.error("Sync Users Error:", error)
+    );
+
+    // Listen Chats
+    const unsubChats = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'chats'), 
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setChatList(data.length ? data : CHAT_LIST);
+      },
+      (error) => console.error("Sync Chats Error:", error)
+    );
+
+    // Listen Moments
+    const unsubMoments = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'moments'), 
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMoments(data.length ? data.sort((a,b) => b.id - a.id) : INITIAL_MOMENTS); 
+      },
+      (error) => console.error("Sync Moments Error:", error)
+    );
+    
+    // Listen Ad Config
+    const unsubAds = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ads'), 
+      (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            setAdConfig(prev => ({...prev, ...data}));
+            if (data.autoReplyText) setAutoReplyText(data.autoReplyText);
+        }
+      },
+      (error) => console.error("Sync Ads Error:", error)
+    );
+
+    return () => {
+      unsubUsers();
+      unsubChats();
+      unsubMoments();
+      unsubAds();
+    };
+  }, [user]);
+
+  // --- FAVICON ---
+  useEffect(() => {
+    const faviconUrl = "https://i.pinimg.com/1200x/9a/c7/7e/9ac77ed57a967f10a8ff8c6dcd6e0308.jpg";
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'shortcut icon';
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+    link.href = faviconUrl;
+    link.type = 'image/jpg';
+    document.title = "MiChat PWA";
+  }, []);
+
+  useEffect(() => {
+    if (adConfig[editingAdType]) {
+      setAdEditForm({ ...adConfig[editingAdType] });
+    }
+  }, [editingAdType, adConfig]);
+
+  // --- DATA HANDLERS (UPDATED FOR FIREBASE) ---
+  
+  // Moment Handler
+  const handleSaveMoment = async () => {
+    if (!user) return;
+    const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'moments');
+    
+    if (editingMomentId) {
+       await updateDoc(doc(collectionRef, editingMomentId), {
+         name: momentForm.name,
+         content: momentForm.content,
+         image: momentForm.image || null
+       });
+       setEditingMomentId(null);
+    } else {
+       const newMoment = {
+         id: Date.now(), // Timestamp as ID for sort
+         name: momentForm.name || 'Admin',
+         avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80`,
+         content: momentForm.content,
+         image: momentForm.image || null,
+         time: 'Baru saja',
+         likes: 0,
+         comments: 0
+       };
+       await addDoc(collectionRef, newMoment);
+    }
+    setMomentForm({ name: '', content: '', image: '' });
+  };
+
+  const handleDeleteMoment = async (id) => {
+     if (!user) return;
+     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'moments', id));
+  };
+
+  const handleEditMoment = (moment) => { 
+    setEditingMomentId(moment.id); 
+    setMomentForm({ name: moment.name, content: moment.content, image: moment.image || '' }); 
+  };
+
+  // User Handler
+  const handleSaveUser = async () => {
+    if (!user) return;
+    const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+
+    if (editingUserId) {
+        await updateDoc(doc(collectionRef, editingUserId), { ...userForm });
+        setEditingUserId(null);
+    } else {
+        const newUser = { 
+            id: Date.now(),
+            ...userForm 
+        };
+        if (!newUser.avatar) newUser.avatar = `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80`;
+        await addDoc(collectionRef, newUser);
+    }
+    setUserForm({ name: '', distance: '', status: '', avatar: '', isOnline: false, verified: false });
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (!user) return;
+    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id));
+  };
+
+  const handleEditUser = (user) => { 
+      setEditingUserId(user.id); 
+      setUserForm({ name: user.name, distance: user.distance, status: user.status || '', avatar: user.avatar, isOnline: user.isOnline, verified: user.verified }); 
+  };
+
+  // Chat Handler
+  const handleSaveChat = async () => {
+    if (!user) return;
+    const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'chats');
+
+    if (editingChatId) {
+        await updateDoc(doc(collectionRef, editingChatId), { ...chatForm });
+        setEditingChatId(null);
+    } else {
+        const newChat = { 
+            id: Date.now(),
+            ...chatForm 
+        };
+        if (!newChat.avatar) newChat.avatar = `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80`;
+        await addDoc(collectionRef, newChat);
+    }
+    setChatForm({ name: '', message: '', time: '', unread: 0, avatar: '' });
+  };
+
+  const handleDeleteChat = async (id) => {
+     if (!user) return;
+     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chats', id));
+  };
+  
+  const handleEditChat = (chat) => { 
+      setEditingChatId(chat.id); 
+      setChatForm({ name: chat.name, message: chat.message, time: chat.time, unread: chat.unread, avatar: chat.avatar }); 
+  };
+
+  // Ad Config Handler (Saves to a single document)
+  const handleSaveAdConfig = async () => {
+    if (!user) return;
+    const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ads');
+    // Create or update
+    // We need to save the whole config object + autoReplyText
+    const newConfig = {
+        ...adConfig,
+        [editingAdType]: { ...adEditForm },
+        autoReplyText: autoReplyText
+    };
+    
+    // Firestore 'set' with merge true acts like upsert
+    const { setDoc } = await import('firebase/firestore');
+    await setDoc(configRef, newConfig, { merge: true });
+    
+    setAdConfig(newConfig);
+    alert('Konfigurasi Iklan Disimpan ke Database!');
+  };
+
+  // --- LOGIC ADMIN ---
+  const handleTitleClick = () => {
+    setClickCount(prev => {
+      const newCount = prev + 1;
+      if (newCount === 5) {
+        setIsAdminOpen(true);
+        return 0;
+      }
+      return newCount;
+    });
+    setTimeout(() => setClickCount(0), 2000);
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (passwordInput === '@Masukin474') {
+      setIsAuthenticated(true);
+      setErrorMsg('');
+      setPasswordInput('');
+    } else {
+      setErrorMsg('Kode akses salah!');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setIsAdminOpen(false);
+    setEditingMomentId(null);
+    setEditingUserId(null);
+    setEditingChatId(null);
+  };
+
+  // --- LOGIC NAVIGATION ---
+  const handleProtectedTabClick = (tabName) => {
+    if (isAdultConfirmed) {
+      setActiveTab(tabName);
+    } else {
+      setPendingTab(tabName); 
+      setShowAdultModal(true);
+    }
+  };
+
+  const confirmAdult = () => {
+    setIsAdultConfirmed(true);
+    setShowAdultModal(false);
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+      setPendingTab(null);
+    }
+  };
+
+  const handleChatClick = (chat) => setActiveChatUser(chat);
+  const handleCloseChat = () => setActiveChatUser(null);
+
+  // --- RENDER HEADER ---
+  const renderHeader = () => {
+    if (activeTab === 'chat' || activeTab === 'me') {
+      return (
+        <header className="bg-[#009688] text-white px-4 py-3 flex items-center justify-between shadow-md sticky top-0 z-40 h-[56px]">
+          <h1 onClick={handleTitleClick} className="text-lg font-medium select-none cursor-pointer">MiChat (2)</h1>
+          <div className="flex items-center space-x-5"><Contact size={24} className="text-white" /><PlusCircle size={24} className="text-white" /></div>
+        </header>
+      );
+    } else if (activeTab === 'friends') {
+      return (
+        <header className="bg-[#009688] text-white px-3 py-3 flex items-center justify-between shadow-md sticky top-0 z-40 h-[56px]">
+          <div className="flex items-center space-x-4"><ArrowLeft size={24} className="cursor-pointer" onClick={() => setActiveTab('chat')} /><h1 onClick={handleTitleClick} className="text-lg font-medium select-none cursor-pointer">Pengguna di Sekitar</h1></div>
+          <div className="flex items-center space-x-4"><div className="flex flex-col items-center"><Lightbulb size={18} className="text-yellow-300 fill-current" /><span className="text-[9px]">Spotlight</span></div><div className="flex flex-col items-center"><Zap size={18} className="text-white fill-current" /><span className="text-[9px]">Boost</span></div><MoreVertical size={24} /></div>
+        </header>
+      );
+    } else if (activeTab === 'moments') {
+      return (
+        <header className="bg-[#009688] text-white px-4 py-3 flex items-center justify-between shadow-md sticky top-0 z-40 h-[56px]">
+          <h1 onClick={handleTitleClick} className="text-lg font-medium select-none cursor-pointer">Momen</h1><Camera size={24} className="text-white" />
+        </header>
+      );
+    }
+  };
+
+  // --- RENDER CONTENT ---
+  const renderContent = () => {
+    if (isLoading) {
+       return <div className="flex items-center justify-center h-[60vh] text-gray-400"><Loader2 size={32} className="animate-spin" /></div>;
+    }
+
+    if (activeTab === 'chat') {
+      return (
+        <>
+          <div className="bg-white px-3 py-2">
+            <div className="bg-gray-100 rounded-full flex items-center px-3 py-1.5">
+              <Search size={16} className="text-gray-400 mr-2" />
+              <input type="text" placeholder="Cari" className="bg-transparent border-none outline-none text-sm flex-1 text-gray-600 placeholder-gray-400" />
+            </div>
+          </div>
+          <div className="bg-white px-4 py-2 flex justify-between items-center border-b border-gray-100">
+            <button className="bg-gray-200 text-gray-700 px-4 py-1 rounded-full text-sm font-medium">Semua</button>
+            <div className="flex items-center space-x-2 cursor-pointer">
+              <span className="text-[#009688] text-sm font-medium">Yang Melihat Saya</span>
+              <div className="relative"><span className="text-[#009688] text-xs font-bold">{'>'}</span><div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></div></div>
+            </div>
+          </div>
+          <div className="bg-white">
+            {chatList.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">Belum ada chat. Tambah di Admin.</div>}
+            {chatList.map((chat) => (
+              <div key={chat.id} onClick={() => handleChatClick(chat)} className="flex items-center p-3 hover:bg-gray-50 active:bg-gray-100 cursor-pointer relative">
+                <img src={chat.avatar} alt={chat.name} className="w-12 h-12 rounded-lg bg-gray-200 object-cover" />
+                <div className="ml-3 flex-1 border-b border-gray-100 pb-3">
+                  <div className="flex justify-between items-start"><h3 className="text-base font-medium text-gray-800">{chat.name}</h3><span className="text-[10px] text-gray-400">{chat.time}</span></div>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm text-gray-500 truncate max-w-[200px]">{chat.message}</p>
+                    {chat.unread > 0 && <span className="bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">{chat.unread}</span>}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {adsEnabled && <AdNative config={adConfig.native} />}
+            <div className="h-20"></div>
+          </div>
+        </>
+      );
+    } else if (activeTab === 'friends') {
+      return (
+        <div className="bg-white min-h-screen pb-24">
+           {nearbyUsers.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">Belum ada user. Tambah di Admin.</div>}
+           {nearbyUsers.map((user, index) => (
+            <React.Fragment key={user.id}>
+              {adsEnabled && index > 0 && index % 3 === 0 && <AdNative config={adConfig.native} />}
+              <div className="flex items-center p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+                <div className="relative">
+                  <img src={user.avatar} alt={user.name} className="w-14 h-14 rounded-full object-cover border border-gray-200" />
+                  {user.isOnline && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>}
+                </div>
+                <div className="ml-3 flex-1">
+                  <div className="flex justify-between">
+                    <div><h3 className="text-[16px] font-medium text-gray-800 flex items-center">{user.name}{user.verified && <span className="text-blue-500 ml-1 text-xs">✔️</span>}</h3><span className="text-sm text-gray-500">Dalam {user.distance}</span></div>
+                    {user.status && <div className="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded h-fit max-w-[80px] truncate">{user.status}</div>}
+                  </div>
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    } else if (activeTab === 'moments') {
+      return (
+        <div className="bg-gray-100 min-h-screen pb-24">
+          <div className="relative h-48 bg-gray-800 mb-4">
+            <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" className="w-full h-full object-cover opacity-70" alt="cover"/>
+            <div className="absolute bottom-[-20px] right-4 flex items-end">
+               <div className="text-white mr-3 text-right mb-6 font-bold shadow-black drop-shadow-md"><div className="text-lg">iclik</div></div>
+               <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80" className="w-20 h-20 rounded-lg border-2 border-white bg-white object-cover" alt="me"/>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {moments.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">Belum ada momen.</div>}
+            {moments.map((moment, index) => (
+              <React.Fragment key={moment.id}>
+                {adsEnabled && index > 0 && index % 2 === 0 && <AdNative config={adConfig.native} />}
+                <div className="bg-white p-3 mb-2 shadow-sm">
+                  <div className="flex items-center mb-2">
+                    <img src={moment.avatar} className="w-10 h-10 rounded bg-gray-200 mr-3 object-cover" alt="av"/>
+                    <div><h3 className="text-[#4a66a0] font-bold text-sm">{moment.name}</h3><p className="text-[10px] text-gray-400">{moment.time}</p></div>
+                  </div>
+                  <div className="text-sm text-gray-800 mb-2 leading-relaxed">{moment.content}</div>
+                  {moment.image && (<div className="mb-2 rounded overflow-hidden"><img src={moment.image} className="w-full h-auto max-h-80 object-cover bg-gray-100" alt="moment" /></div>)}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-1">
+                     <div className="flex space-x-4">
+                        <button className="flex items-center space-x-1 text-gray-500 text-xs"><Heart size={16} /> <span>{moment.likes}</span></button>
+                        <button className="flex items-center space-x-1 text-gray-500 text-xs"><MessageSquare size={16} /> <span>{moment.comments}</span></button>
+                     </div>
+                  </div>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      );
+    } else if (activeTab === 'me') {
+      return (
+        <div className="bg-gray-50 min-h-screen pb-24 font-sans">
+          {/* Static Profile Content */}
+          <div className="bg-white p-4 pb-2">
+            <div className="flex items-center mb-4">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80" className="w-16 h-16 rounded-lg bg-gray-200 border border-gray-100 mr-4 object-cover" alt="profile" />
+              <div className="flex-1">
+                <div className="flex items-center mb-1">
+                  <h2 className="text-xl font-bold text-gray-800 mr-1">iclik</h2>
+                  <span className="bg-gray-200 rounded-full p-0.5"><CheckCircle size={12} className="text-gray-500 fill-white" /></span>
+                </div>
+                <div className="flex items-center space-x-6 text-gray-500 text-xs mt-2">
+                  <div className="flex items-center space-x-1 cursor-pointer"><QrCode size={16} className="text-[#009688]" /><span>Kode QR Saya</span></div>
+                  <div className="flex items-center space-x-1 cursor-pointer"><PictureIcon size={16} className="text-[#009688]" /><span>Kiriman Saya</span></div>
+                </div>
+              </div>
+              <div className="text-gray-300">{'>'}</div>
+            </div>
+            <div className="w-full bg-gradient-to-r from-orange-100 to-orange-50 border border-orange-200 rounded-xl p-4 mb-4 shadow-sm relative overflow-hidden">
+              <div className="relative z-10">
+                 <div className="flex items-center mb-1"><div className="w-5 h-5 bg-orange-400 rounded-full flex items-center justify-center mr-2 text-white text-[10px] font-bold">V</div><h3 className="text-orange-800 font-bold text-sm">MiChat VIP</h3></div>
+                 <p className="text-xs text-orange-700 mb-3 max-w-[70%]">Nikmati 5 keistimewaan utama setelah aktivasi</p>
+                 <div className="flex justify-end"><button className="bg-orange-400 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">Ambil Sekarang</button></div>
+              </div>
+            </div>
+            <div className="flex border-t border-gray-100 pt-2 pb-1">
+              <div className="flex-1 flex flex-col items-center justify-center border-r border-gray-100 relative">
+                <div className="absolute top-0 right-8 bg-red-500 text-white text-[9px] px-1 rounded-full font-bold">+2</div>
+                <div className="flex items-center space-x-1"><Eye size={20} className="text-purple-500" /><span className="text-lg font-bold text-gray-800">4</span></div>
+                <span className="text-[10px] text-gray-500 mt-1">Yang Melihat Saya</span>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center relative">
+                <div className="absolute top-0 right-8 bg-red-500 text-white text-[9px] px-1 rounded-full font-bold">+20</div>
+                <div className="flex items-center space-x-1"><Heart size={20} className="text-pink-500 fill-current" /><span className="text-lg font-bold text-gray-800">20</span></div>
+                <span className="text-[10px] text-gray-500 mt-1">Penggemar</span>
+              </div>
+            </div>
+          </div>
+          
+          {adsEnabled && <AdBigProfile config={adConfig.profile} />}
+          
+          <div className="bg-white mt-3 px-4 py-3 flex items-center space-x-3">
+            <Star size={24} className="text-orange-400" />
+            <span className="text-sm text-gray-700 font-medium flex-1">Penilaian Anda</span>
+            <div className="flex space-x-1">{[1,2,3,4,5].map(i => <Star key={i} size={20} className="text-yellow-400 fill-current" />)}</div>
+          </div>
+          <div className="bg-white mt-3 mb-10">
+             <div className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"><Lock size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Privasi</span><span className="text-gray-300">{'>'}</span></div>
+             <div className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"><Info size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Tentang</span><span className="text-gray-300">{'>'}</span></div>
+             <div className="flex items-center p-4 hover:bg-gray-50 cursor-pointer"><Settings size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Pengaturan</span><span className="text-gray-300">{'>'}</span></div>
+          </div>
+        </div>
+      );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 font-sans max-w-md mx-auto shadow-2xl relative overflow-hidden border-x border-gray-200">
+      
+      {renderHeader()}
+      {adsEnabled && activeTab !== 'me' && !activeChatUser && <AdBanner config={adConfig.banner} />}
+      
+      {activeChatUser ? (
+        <ChatRoom 
+          user={activeChatUser} 
+          autoReplyText={autoReplyText} 
+          onClose={handleCloseChat}
+          chatAdConfig={adConfig.chat} 
+          chatBubbleAdConfig={adConfig.chatBubble}
+          adsEnabled={adsEnabled}
+        />
+      ) : (
+        renderContent()
+      )}
+      
+      {adsEnabled && showAnchor && !activeChatUser && <AdAnchor config={adConfig.anchor} onClose={() => setShowAnchor(false)} />}
+
+      {/* --- POP UP KONFIRMASI 18+ --- */}
+      {showAdultModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setShowAdultModal(false)}></div>
+           <div className="bg-white rounded-xl p-6 max-w-xs w-full relative z-10 shadow-2xl text-center animate-bounce-in transform transition-all scale-100">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner"><AlertTriangle size={32} className="text-red-600" /></div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Konten Dewasa 18+</h3>
+              <p className="text-sm text-gray-600 mb-6 leading-relaxed">Halaman ini mungkin memuat konten yang memerlukan kedewasaan. Apakah Anda berusia 18 tahun ke atas?</p>
+              <div className="flex space-x-3"><button onClick={() => setShowAdultModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">Batal</button><button onClick={confirmAdult} className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-md">Ya, Masuk</button></div>
+           </div>
+        </div>
+      )}
+
+      {/* --- BOTTOM NAV --- */}
+      {!activeChatUser && (
+        <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 flex justify-between items-center h-[60px] z-50 px-2">
+          <button onClick={() => setActiveTab('chat')} className={`flex flex-col items-center justify-center w-1/4 h-full relative ${activeTab === 'chat' ? 'text-[#009688]' : 'text-gray-500'}`}>
+            <div className="relative"><svg width="24" height="24" viewBox="0 0 24 24" fill={activeTab === 'chat' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-white">2</span></div><span className="text-[10px] mt-1 font-medium">Chat</span>
+          </button>
+          <button onClick={() => setActiveTab('friends')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'friends' ? 'text-[#009688]' : 'text-gray-500'}`}><UserPlus size={24} strokeWidth={activeTab === 'friends' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Teman</span></button>
+          <button onClick={() => handleProtectedTabClick('moments')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'moments' ? 'text-[#009688]' : 'text-gray-500'}`}><Aperture size={24} strokeWidth={activeTab === 'moments' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Momen</span></button>
+          <button onClick={() => handleProtectedTabClick('me')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'me' ? 'text-[#009688]' : 'text-gray-500'}`}><Menu size={24} strokeWidth={activeTab === 'me' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Saya</span></button>
+        </div>
+      )}
+
+      {/* --- HIDDEN ADMIN MODAL --- */}
+      {isAdminOpen && !isAuthenticated && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xs p-6 relative animate-fade-in">
+            <button onClick={() => setIsAdminOpen(false)} className="absolute top-2 right-2 text-gray-400"><X size={20} /></button>
+            <div className="text-center mb-6">
+              <Settings className="text-red-600 mx-auto mb-2 w-10 h-10 bg-red-100 rounded-full p-2" />
+              <h2 className="text-xl font-bold text-gray-800">Admin Login</h2>
+            </div>
+            <form onSubmit={handleLogin}>
+              <input type="password" className="w-full border border-gray-300 rounded px-3 py-2 mb-3" placeholder="Kode Akses" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
+              {errorMsg && <p className="text-red-500 text-xs mb-2">{errorMsg}</p>}
+              <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2 rounded">Masuk</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- ADMIN DASHBOARD PANEL --- */}
+      {isAdminOpen && isAuthenticated && (
+        <div className="fixed inset-0 bg-gray-100 z-[70] overflow-y-auto animate-slide-up">
+          <div className="bg-gray-900 text-white px-4 py-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
+            <span className="font-bold">Admin Panel</span>
+            <button onClick={handleLogout} className="bg-red-600 px-3 py-1 rounded text-xs">Keluar</button>
+          </div>
+          <div className="p-4 pb-20 space-y-4">
+             <div className="bg-white p-4 rounded shadow flex justify-between items-center">
+               <span className="font-bold text-gray-700">Status Global Iklan</span>
+               <button onClick={() => setAdsEnabled(!adsEnabled)} className={`px-4 py-2 rounded text-white font-bold ${adsEnabled ? 'bg-green-500' : 'bg-red-500'}`}>{adsEnabled ? 'ON' : 'OFF'}</button>
+             </div>
+
+             {/* MANAJEMEN IKLAN SECTION */}
+             <div className="bg-white rounded shadow overflow-hidden">
+               <h3 className="bg-purple-50 px-4 py-3 border-b font-bold text-purple-800 text-sm flex items-center"><Megaphone size={16} className="mr-2" /> Manajemen Kode & Konten Iklan</h3>
+               <div className="p-4">
+                 <div className="mb-4">
+                   <label className="block text-xs font-bold text-gray-600 mb-1">Pilih Jenis Iklan:</label>
+                   <div className="flex space-x-2 flex-wrap gap-2">
+                     {['banner', 'native', 'anchor', 'profile', 'chat', 'chatBubble'].map(type => (
+                       <button key={type} onClick={() => setEditingAdType(type)} className={`px-3 py-1.5 rounded text-xs font-bold capitalize border ${editingAdType === type ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'}`}>{type}</button>
+                     ))}
+                   </div>
+                 </div>
+                 <div className="space-y-3 bg-gray-50 p-3 rounded border">
+                    <div className="flex justify-between items-center border-b pb-2 mb-2">
+                      <h4 className="text-xs font-bold text-gray-500 uppercase">Edit {editingAdType}</h4>
+                      <label className="flex items-center space-x-2 text-xs font-bold text-blue-600 cursor-pointer bg-blue-50 px-2 py-1 rounded"><input type="checkbox" checked={adEditForm.useHtml || false} onChange={e => setAdEditForm({...adEditForm, useHtml: e.target.checked})} /><Code size={12} /><span>Gunakan Custom HTML</span></label>
+                    </div>
+                    {adEditForm.useHtml ? (
+                       <div><label className="block text-[10px] font-bold text-gray-500 mb-1">Kode HTML:</label><textarea placeholder="<div>Kode iklan Anda di sini...</div>" className="w-full border rounded px-2 py-1.5 text-sm h-32 font-mono text-xs" value={adEditForm.htmlContent || ''} onChange={e => setAdEditForm({...adEditForm, htmlContent: e.target.value})} /><p className="text-[10px] text-gray-400 mt-1">*Masukkan script iklan atau elemen HTML valid.</p></div>
+                    ) : (
+                      <>
+                        {editingAdType === 'banner' && (<><input type="text" placeholder="Teks Banner" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.text || ''} onChange={e => setAdEditForm({...adEditForm, text: e.target.value})} /><div className="flex space-x-2"><input type="text" placeholder="Warna Awal (e.g blue-500)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorFrom || ''} onChange={e => setAdEditForm({...adEditForm, colorFrom: e.target.value})} /><input type="text" placeholder="Warna Akhir (e.g cyan-400)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorTo || ''} onChange={e => setAdEditForm({...adEditForm, colorTo: e.target.value})} /></div></>)}
+                        {(['native', 'anchor', 'profile', 'chat', 'chatBubble'].includes(editingAdType)) && (<><input type="text" placeholder="Judul Iklan" className="w-full border rounded px-2 py-1.5 text-sm font-bold" value={adEditForm.title || ''} onChange={e => setAdEditForm({...adEditForm, title: e.target.value})} /><textarea placeholder="Deskripsi Iklan" className="w-full border rounded px-2 py-1.5 text-sm h-16" value={adEditForm.desc || ''} onChange={e => setAdEditForm({...adEditForm, desc: e.target.value})} /></>)}
+                        {(['native', 'profile', 'chatBubble'].includes(editingAdType)) && (<input type="text" placeholder="URL Gambar / Background" className="w-full border rounded px-2 py-1.5 text-sm" value={['native', 'chatBubble'].includes(editingAdType) ? (adEditForm.image || '') : (adEditForm.bgImage || '')} onChange={e => (['native', 'chatBubble'].includes(editingAdType)) ? setAdEditForm({...adEditForm, image: e.target.value}) : setAdEditForm({...adEditForm, bgImage: e.target.value})} />)}
+                        {(['anchor', 'chat'].includes(editingAdType)) && (<div className="flex space-x-2"><input type="text" placeholder="Teks Icon (e.g Go)" className="w-1/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.iconText || ''} onChange={e => setAdEditForm({...adEditForm, iconText: e.target.value})} /><input type="text" placeholder="Teks Tombol" className="w-2/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.btnText || ''} onChange={e => setAdEditForm({...adEditForm, btnText: e.target.value})} /></div>)}
+                        {(['profile', 'chatBubble'].includes(editingAdType)) && (<input type="text" placeholder="Teks Tombol" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.btnText || ''} onChange={e => setAdEditForm({...adEditForm, btnText: e.target.value})} />)}
+                      </>
+                    )}
+                    <button onClick={handleSaveAdConfig} className="w-full bg-purple-600 text-white font-bold py-2 rounded text-sm mt-2">Simpan Konfigurasi</button>
+                 </div>
+               </div>
+             </div>
+             
+             {/* MOMENTS, USERS, CHATS MANAGEMENT UI (Keep same structure, logic updated) */}
+             <div className="bg-white rounded shadow overflow-hidden">
+                <h3 className="bg-teal-50 px-4 py-3 border-b font-bold text-teal-800 text-sm flex items-center"><Aperture size={16} className="mr-2" /> Manajemen Momen</h3>
+                <div className="p-4 border-b bg-gray-50">
+                   <h4 className="text-xs font-bold text-gray-500 mb-2 uppercase">{editingMomentId ? 'Edit Momen' : 'Tambah Momen Baru'}</h4>
+                   <div className="space-y-2">
+                      <input type="text" placeholder="Nama User" className="w-full border rounded px-2 py-1.5 text-sm" value={momentForm.name} onChange={e => setMomentForm({...momentForm, name: e.target.value})} />
+                      <textarea placeholder="Isi Status..." className="w-full border rounded px-2 py-1.5 text-sm h-20" value={momentForm.content} onChange={e => setMomentForm({...momentForm, content: e.target.value})} />
+                      <div className="flex items-center space-x-2"><ImageIcon size={16} className="text-gray-400"/><input type="text" placeholder="URL Gambar" className="w-full border rounded px-2 py-1.5 text-sm" value={momentForm.image} onChange={e => setMomentForm({...momentForm, image: e.target.value})} /></div>
+                      <button onClick={handleSaveMoment} className={`w-full py-2 rounded text-white text-sm font-bold flex items-center justify-center ${editingMomentId ? 'bg-blue-600' : 'bg-teal-600'}`}><Save size={16} className="mr-1"/> {editingMomentId ? 'Simpan' : 'Posting'}</button>
+                   </div>
+                </div>
+                <div className="max-h-40 overflow-y-auto">
+                  {moments.map(m => (
+                    <div key={m.id} className="p-3 border-b flex justify-between items-start hover:bg-gray-50"><div className="flex space-x-2 overflow-hidden"><img src={m.avatar} className="w-8 h-8 rounded bg-gray-200 flex-shrink-0" alt="av" /><div><p className="text-sm font-bold text-gray-800">{m.name}</p><p className="text-xs text-gray-500 truncate max-w-[150px]">{m.content}</p></div></div><div className="flex space-x-1"><button onClick={() => handleEditMoment(m)} className="bg-blue-100 text-blue-600 p-1.5 rounded hover:bg-blue-200"><Edit3 size={14} /></button><button onClick={() => handleDeleteMoment(m.id)} className="bg-red-100 text-red-600 p-1.5 rounded hover:bg-red-200"><Trash2 size={14} /></button></div></div>
+                  ))}
+                </div>
+             </div>
+             <div className="bg-white rounded shadow overflow-hidden">
+                <h3 className="bg-teal-50 px-4 py-3 border-b font-bold text-teal-800 text-sm flex items-center"><UserPlus size={16} className="mr-2" /> Manajemen User (Sekitar)</h3>
+                <div className="p-4 border-b bg-gray-50"><h4 className="text-xs font-bold text-gray-500 mb-2 uppercase">{editingUserId ? 'Edit User' : 'Tambah User Baru'}</h4><div className="grid grid-cols-2 gap-2 mb-2"><input type="text" placeholder="Nama" className="border rounded px-2 py-1.5 text-sm" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} /><input type="text" placeholder="Jarak (e.g 5 km)" className="border rounded px-2 py-1.5 text-sm" value={userForm.distance} onChange={e => setUserForm({...userForm, distance: e.target.value})} /></div><div className="space-y-2 mb-2"><input type="text" placeholder="Status (e.g Shopping)" className="w-full border rounded px-2 py-1.5 text-sm" value={userForm.status} onChange={e => setUserForm({...userForm, status: e.target.value})} /><input type="text" placeholder="URL Avatar (Kosongkan utk auto)" className="w-full border rounded px-2 py-1.5 text-sm" value={userForm.avatar} onChange={e => setUserForm({...userForm, avatar: e.target.value})} /></div><div className="flex space-x-4 mb-3"><label className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer"><input type="checkbox" checked={userForm.isOnline} onChange={e => setUserForm({...userForm, isOnline: e.target.checked})} /><span>Online</span></label><label className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer"><input type="checkbox" checked={userForm.verified} onChange={e => setUserForm({...userForm, verified: e.target.checked})} /><span>Verified</span></label></div><button onClick={handleSaveUser} className={`w-full py-2 rounded text-white text-sm font-bold flex items-center justify-center ${editingUserId ? 'bg-blue-600' : 'bg-teal-600'}`}><Save size={16} className="mr-1"/> {editingUserId ? 'Simpan User' : 'Tambah User'}</button></div>
+                <div className="max-h-40 overflow-y-auto">{nearbyUsers.map(u => (<div key={u.id} className="p-3 border-b flex justify-between items-center"><div className="flex items-center space-x-2"><div className="relative"><img src={u.avatar} className="w-8 h-8 rounded-full bg-gray-200" alt="av" />{u.isOnline && <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border border-white"></div>}</div><div><p className="text-sm font-bold">{u.name}</p><p className="text-xs text-gray-500">{u.distance}</p></div></div><div className="flex space-x-1"><button onClick={() => handleEditUser(u)} className="bg-blue-100 text-blue-600 p-1.5 rounded hover:bg-blue-200"><Edit3 size={14} /></button><button onClick={() => handleDeleteUser(u.id)} className="bg-red-100 text-red-600 p-1.5 rounded hover:bg-red-200"><Trash2 size={14} /></button></div></div>))}</div>
+             </div>
+             <div className="bg-white rounded shadow overflow-hidden">
+                <h3 className="bg-teal-50 px-4 py-3 border-b font-bold text-teal-800 text-sm flex items-center"><MessageCircle size={16} className="mr-2" /> Manajemen Chat</h3>
+                <div className="p-4 border-b bg-teal-50"><h4 className="text-xs font-bold text-teal-700 mb-2 uppercase">Auto Reply</h4><div className="flex gap-2"><input type="text" value={autoReplyText} onChange={(e) => setAutoReplyText(e.target.value)} className="flex-1 border rounded px-2 py-1 text-sm" placeholder="Pesan balasan otomatis..." /><button onClick={() => handleSaveAdConfig()} className="bg-teal-600 text-white px-3 rounded text-xs font-bold">Simpan</button></div><p className="text-[10px] text-gray-500 mt-1">*Pesan ini akan dikirim otomatis saat user membuka chat.</p></div>
+                <div className="p-4 border-b bg-gray-50"><h4 className="text-xs font-bold text-gray-500 mb-2 uppercase">{editingChatId ? 'Edit Chat' : 'Tambah Chat Baru'}</h4><div className="grid grid-cols-2 gap-2 mb-2"><input type="text" placeholder="Nama User" className="border rounded px-2 py-1.5 text-sm" value={chatForm.name} onChange={e => setChatForm({...chatForm, name: e.target.value})} /><input type="text" placeholder="Waktu (e.g 12:30 PM)" className="border rounded px-2 py-1.5 text-sm" value={chatForm.time} onChange={e => setChatForm({...chatForm, time: e.target.value})} /></div><div className="space-y-2 mb-2"><input type="text" placeholder="Pesan Terakhir..." className="w-full border rounded px-2 py-1.5 text-sm" value={chatForm.message} onChange={e => setChatForm({...chatForm, message: e.target.value})} /><div className="flex space-x-2"><input type="text" placeholder="URL Avatar (Opsional)" className="w-3/4 border rounded px-2 py-1.5 text-sm" value={chatForm.avatar} onChange={e => setChatForm({...chatForm, avatar: e.target.value})} /><input type="number" placeholder="Unread" className="w-1/4 border rounded px-2 py-1.5 text-sm" value={chatForm.unread} onChange={e => setChatForm({...chatForm, unread: parseInt(e.target.value) || 0})} /></div></div><button onClick={handleSaveChat} className={`w-full py-2 rounded text-white text-sm font-bold flex items-center justify-center ${editingChatId ? 'bg-blue-600' : 'bg-teal-600'}`}><Save size={16} className="mr-1"/> {editingChatId ? 'Simpan Chat' : 'Tambah Chat'}</button></div>
+                <div className="max-h-40 overflow-y-auto">{chatList.map(c => (<div key={c.id} className="p-3 border-b flex justify-between items-center"><div className="flex items-center space-x-2 overflow-hidden"><img src={c.avatar} className="w-8 h-8 rounded-lg bg-gray-200 flex-shrink-0" alt="av" /><div className="min-w-0"><p className="text-sm font-bold truncate">{c.name}</p><p className="text-xs text-gray-500 truncate">{c.message}</p></div></div><div className="flex space-x-1 flex-shrink-0 ml-2"><button onClick={() => handleEditChat(c)} className="bg-blue-100 text-blue-600 p-1.5 rounded hover:bg-blue-200"><Edit3 size={14} /></button><button onClick={() => handleDeleteChat(c.id)} className="bg-red-100 text-red-600 p-1.5 rounded hover:bg-red-200"><Trash2 size={14} /></button></div></div>))}</div>
+             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
