@@ -13,7 +13,6 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInAnonymously, 
-  signInWithCustomToken,
   onAuthStateChanged 
 } from 'firebase/auth';
 import { 
@@ -28,6 +27,35 @@ import {
   orderBy,
   serverTimestamp
 } from 'firebase/firestore';
+
+// ==========================================
+// ⚠️ KONFIGURASI FIREBASE (WAJIB DIISI) ⚠️
+// ==========================================
+// 1. Buka https://console.firebase.google.com/
+// 2. Buat Project baru
+// 3. Tambahkan Web App (ikon </>)
+// 4. Copy config-nya dan paste di bawah ini:
+
+const firebaseConfig = {
+  apiKey: "GANTI_DENGAN_API_KEY_ANDA",
+  authDomain: "GANTI_DENGAN_PROJECT_ID.firebaseapp.com",
+  projectId: "GANTI_DENGAN_PROJECT_ID",
+  storageBucket: "GANTI_DENGAN_PROJECT_ID.appspot.com",
+  messagingSenderId: "GANTI_DENGAN_SENDER_ID",
+  appId: "GANTI_DENGAN_APP_ID"
+};
+
+// Initialize Firebase
+// Cek agar tidak error jika config belum diisi
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Nama ID Aplikasi untuk Database (Bebas)
+const appId = 'michat-pwa-prod'; 
+
+// ==========================================
+
 
 // --- INITIAL MOCK DATA (UPDATED REAL IMAGES) ---
 const NEARBY_USERS = [
@@ -343,21 +371,14 @@ export default function App() {
   const [showAdultModal, setShowAdultModal] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
 
-  // --- FIREBASE INITIALIZATION & SYNC ---
-  const firebaseConfig = JSON.parse(__firebase_config);
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-  // 1. Auth Flow
+  // --- FIREBASE AUTH FLOW ---
   useEffect(() => {
     const initAuth = async () => {
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        await signInWithCustomToken(auth, __initial_auth_token);
-      } else {
-        await signInAnonymously(auth);
-      }
+       try {
+         await signInAnonymously(auth);
+       } catch (error) {
+         console.error("Login Failed", error);
+       }
     };
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, setUser);
@@ -366,13 +387,20 @@ export default function App() {
 
   // 2. Data Sync (Listen to Firestore)
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Fallback to mock data if auth not ready/failed (for preview mode)
+      setNearbyUsers(NEARBY_USERS);
+      setChatList(CHAT_LIST);
+      setMoments(INITIAL_MOMENTS);
+      setIsLoading(false);
+      return;
+    }
 
     // Listen Users
     const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), 
       (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setNearbyUsers(data.length ? data : NEARBY_USERS); // Fallback to mock if empty
+        setNearbyUsers(data.length ? data : NEARBY_USERS); 
         setIsLoading(false);
       }, 
       (error) => console.error("Sync Users Error:", error)
@@ -436,7 +464,7 @@ export default function App() {
     }
   }, [editingAdType, adConfig]);
 
-  // --- DATA HANDLERS (UPDATED FOR FIREBASE) ---
+  // --- DATA HANDLERS ---
   
   // Moment Handler
   const handleSaveMoment = async () => {
@@ -452,7 +480,7 @@ export default function App() {
        setEditingMomentId(null);
     } else {
        const newMoment = {
-         id: Date.now(), // Timestamp as ID for sort
+         id: Date.now(), 
          name: momentForm.name || 'Admin',
          avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80`,
          content: momentForm.content,
@@ -538,18 +566,13 @@ export default function App() {
   const handleSaveAdConfig = async () => {
     if (!user) return;
     const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ads');
-    // Create or update
-    // We need to save the whole config object + autoReplyText
     const newConfig = {
         ...adConfig,
         [editingAdType]: { ...adEditForm },
         autoReplyText: autoReplyText
     };
-    
-    // Firestore 'set' with merge true acts like upsert
     const { setDoc } = await import('firebase/firestore');
     await setDoc(configRef, newConfig, { merge: true });
-    
     setAdConfig(newConfig);
     alert('Konfigurasi Iklan Disimpan ke Database!');
   };
@@ -704,7 +727,7 @@ export default function App() {
             <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" className="w-full h-full object-cover opacity-70" alt="cover"/>
             <div className="absolute bottom-[-20px] right-4 flex items-end">
                <div className="text-white mr-3 text-right mb-6 font-bold shadow-black drop-shadow-md"><div className="text-lg">iclik</div></div>
-               <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80" className="w-20 h-20 rounded-lg border-2 border-white bg-white object-cover" alt="me"/>
+               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=iclik" className="w-20 h-20 rounded-lg border-2 border-white bg-white object-cover" alt="me"/>
             </div>
           </div>
           <div className="space-y-2">
@@ -886,7 +909,7 @@ export default function App() {
                        <div><label className="block text-[10px] font-bold text-gray-500 mb-1">Kode HTML:</label><textarea placeholder="<div>Kode iklan Anda di sini...</div>" className="w-full border rounded px-2 py-1.5 text-sm h-32 font-mono text-xs" value={adEditForm.htmlContent || ''} onChange={e => setAdEditForm({...adEditForm, htmlContent: e.target.value})} /><p className="text-[10px] text-gray-400 mt-1">*Masukkan script iklan atau elemen HTML valid.</p></div>
                     ) : (
                       <>
-                        {editingAdType === 'banner' && (<><input type="text" placeholder="Teks Banner" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.text || ''} onChange={e => setAdEditForm({...adEditForm, text: e.target.value})} /><div className="flex space-x-2"><input type="text" placeholder="Warna Awal (e.g blue-500)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorFrom || ''} onChange={e => setAdEditForm({...adEditForm, colorFrom: e.target.value})} /><input type="text" placeholder="Warna Akhir (e.g cyan-400)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorTo || ''} onChange={e => setAdEditForm({...adEditForm, colorTo: e.target.value})} /></div></>)}
+                        {editingAdType === 'banner' && (<><input type="text" placeholder="Teks Banner" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.text || ''} onChange={e => setAdEditForm({...adEditForm,text: e.target.value})} /><div className="flex space-x-2"><input type="text" placeholder="Warna Awal (e.g blue-500)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorFrom || ''} onChange={e => setAdEditForm({...adEditForm, colorFrom: e.target.value})} /><input type="text" placeholder="Warna Akhir (e.g cyan-400)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorTo || ''} onChange={e => setAdEditForm({...adEditForm, colorTo: e.target.value})} /></div></>)}
                         {(['native', 'anchor', 'profile', 'chat', 'chatBubble'].includes(editingAdType)) && (<><input type="text" placeholder="Judul Iklan" className="w-full border rounded px-2 py-1.5 text-sm font-bold" value={adEditForm.title || ''} onChange={e => setAdEditForm({...adEditForm, title: e.target.value})} /><textarea placeholder="Deskripsi Iklan" className="w-full border rounded px-2 py-1.5 text-sm h-16" value={adEditForm.desc || ''} onChange={e => setAdEditForm({...adEditForm, desc: e.target.value})} /></>)}
                         {(['native', 'profile', 'chatBubble'].includes(editingAdType)) && (<input type="text" placeholder="URL Gambar / Background" className="w-full border rounded px-2 py-1.5 text-sm" value={['native', 'chatBubble'].includes(editingAdType) ? (adEditForm.image || '') : (adEditForm.bgImage || '')} onChange={e => (['native', 'chatBubble'].includes(editingAdType)) ? setAdEditForm({...adEditForm, image: e.target.value}) : setAdEditForm({...adEditForm, bgImage: e.target.value})} />)}
                         {(['anchor', 'chat'].includes(editingAdType)) && (<div className="flex space-x-2"><input type="text" placeholder="Teks Icon (e.g Go)" className="w-1/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.iconText || ''} onChange={e => setAdEditForm({...adEditForm, iconText: e.target.value})} /><input type="text" placeholder="Teks Tombol" className="w-2/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.btnText || ''} onChange={e => setAdEditForm({...adEditForm, btnText: e.target.value})} /></div>)}
