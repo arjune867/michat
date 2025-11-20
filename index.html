@@ -29,12 +29,8 @@ import {
 } from 'firebase/firestore';
 
 // ==========================================
-// ⚠️ KONFIGURASI FIREBASE (WAJIB DIISI) ⚠️
+// ⚠️ KONFIGURASI FIREBASE ANDA ⚠️
 // ==========================================
-// 1. Buka https://console.firebase.google.com/
-// 2. Buat Project baru
-// 3. Tambahkan Web App (ikon </>)
-// 4. Copy config-nya dan paste di bawah ini:
 
 const firebaseConfig = {
   apiKey: "AIzaSyC7mJ3KfHkrHd5rO_Zy_Y1zqVq0xxVirW0",
@@ -45,19 +41,19 @@ const firebaseConfig = {
   appId: "1:125003885056:web:42a6967b28bdd3afb706e5",
   measurementId: "G-L4HY3JTW09"
 };
+
 // Initialize Firebase
-// Cek agar tidak error jika config belum diisi
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Nama ID Aplikasi untuk Database (Bebas)
+// Nama ID Aplikasi untuk pemisah data di Database
 const appId = 'michat-pwa-prod'; 
 
 // ==========================================
 
 
-// --- INITIAL MOCK DATA (UPDATED REAL IMAGES) ---
+// --- INITIAL MOCK DATA ---
 const NEARBY_USERS = [
   { id: 1, name: 'dwiitok', distance: '5 km', status: 'shopping', avatar: 'https://images.unsplash.com/photo-1583336137348-cde425f5ef07?w=150&h=150&fit=crop&q=80', isOnline: true, verified: true },
   { id: 2, name: 'trondol', distance: '7 km', status: '😊', avatar: 'https://images.unsplash.com/photo-1616701825388-6f8242e8842d?w=150&h=150&fit=crop&q=80', isOnline: false, verified: false },
@@ -71,7 +67,6 @@ const NEARBY_USERS = [
 const CHAT_LIST = [
   { id: 1, name: 'Aulia april', message: 'Cek link ini: https://google.com', time: '12:44 AM', unread: 2, avatar: 'https://images.unsplash.com/photo-1564460576398-ef55d99548a2?w=150&h=150&fit=crop&q=80' },
   { id: 2, name: 'Admin Official', message: 'Selamat datang di MiChat!', time: 'Yesterday', unread: 0, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&q=80' },
-  // 5 Chat Tambahan Baru
   { id: 3, name: 'Sinta', message: 'Hai kak, boleh kenalan?', time: '10:30 PM', unread: 1, avatar: 'https://images.unsplash.com/photo-1583336137348-cde425f5ef07?w=150&h=150&fit=crop&q=80' },
   { id: 4, name: 'Rina Wati', message: 'Besok jadi jalan gak?', time: '09:15 PM', unread: 3, avatar: 'https://images.unsplash.com/photo-1614200187303-88944131c0b7?w=150&h=150&fit=crop&q=80' },
   { id: 5, name: 'Maya Sari', message: 'Info loker terbaru nih https://jobstreet.co.id', time: '08:00 PM', unread: 0, avatar: 'https://images.unsplash.com/photo-1621012430307-b4774b78d3cb?w=150&h=150&fit=crop&q=80' },
@@ -359,8 +354,6 @@ export default function App() {
   const [adConfig, setAdConfig] = useState(DEFAULT_AD_CONFIG);
   const [editingAdType, setEditingAdType] = useState('banner'); 
   const [adEditForm, setAdEditForm] = useState({}); 
-  
-  // Chat Auto Reply State
   const [autoReplyText, setAutoReplyText] = useState("Halo kaka, boleh kenalan? Cek link ini ya https://google.com 🥰");
   const [activeChatUser, setActiveChatUser] = useState(null); 
 
@@ -480,7 +473,7 @@ export default function App() {
        setEditingMomentId(null);
     } else {
        const newMoment = {
-         id: Date.now(), 
+         id: Date.now(), // Timestamp as ID for sort
          name: momentForm.name || 'Admin',
          avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80`,
          content: momentForm.content,
@@ -665,32 +658,12 @@ export default function App() {
     if (activeTab === 'chat') {
       return (
         <>
-          <div className="bg-white px-3 py-2">
-            <div className="bg-gray-100 rounded-full flex items-center px-3 py-1.5">
-              <Search size={16} className="text-gray-400 mr-2" />
-              <input type="text" placeholder="Cari" className="bg-transparent border-none outline-none text-sm flex-1 text-gray-600 placeholder-gray-400" />
-            </div>
-          </div>
-          <div className="bg-white px-4 py-2 flex justify-between items-center border-b border-gray-100">
-            <button className="bg-gray-200 text-gray-700 px-4 py-1 rounded-full text-sm font-medium">Semua</button>
-            <div className="flex items-center space-x-2 cursor-pointer">
-              <span className="text-[#009688] text-sm font-medium">Yang Melihat Saya</span>
-              <div className="relative"><span className="text-[#009688] text-xs font-bold">{'>'}</span><div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></div></div>
-            </div>
-          </div>
+          <div className="bg-white px-3 py-2"><div className="bg-gray-100 rounded-full flex items-center px-3 py-1.5"><Search size={16} className="text-gray-400 mr-2" /><input type="text" placeholder="Cari" className="bg-transparent border-none outline-none text-sm flex-1 text-gray-600 placeholder-gray-400" /></div></div>
+          <div className="bg-white px-4 py-2 flex justify-between items-center border-b border-gray-100"><button className="bg-gray-200 text-gray-700 px-4 py-1 rounded-full text-sm font-medium">Semua</button><div className="flex items-center space-x-2 cursor-pointer"><span className="text-[#009688] text-sm font-medium">Yang Melihat Saya</span><div className="relative"><span className="text-[#009688] text-xs font-bold">{'>'}</span><div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></div></div></div></div>
           <div className="bg-white">
             {chatList.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">Belum ada chat. Tambah di Admin.</div>}
             {chatList.map((chat) => (
-              <div key={chat.id} onClick={() => handleChatClick(chat)} className="flex items-center p-3 hover:bg-gray-50 active:bg-gray-100 cursor-pointer relative">
-                <img src={chat.avatar} alt={chat.name} className="w-12 h-12 rounded-lg bg-gray-200 object-cover" />
-                <div className="ml-3 flex-1 border-b border-gray-100 pb-3">
-                  <div className="flex justify-between items-start"><h3 className="text-base font-medium text-gray-800">{chat.name}</h3><span className="text-[10px] text-gray-400">{chat.time}</span></div>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-sm text-gray-500 truncate max-w-[200px]">{chat.message}</p>
-                    {chat.unread > 0 && <span className="bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">{chat.unread}</span>}
-                  </div>
-                </div>
-              </div>
+              <div key={chat.id} onClick={() => handleChatClick(chat)} className="flex items-center p-3 hover:bg-gray-50 active:bg-gray-100 cursor-pointer relative"><img src={chat.avatar} alt={chat.name} className="w-12 h-12 rounded-lg bg-gray-200 object-cover" /><div className="ml-3 flex-1 border-b border-gray-100 pb-3"><div className="flex justify-between items-start"><h3 className="text-base font-medium text-gray-800">{chat.name}</h3><span className="text-[10px] text-gray-400">{chat.time}</span></div><div className="flex justify-between items-center mt-1"><p className="text-sm text-gray-500 truncate max-w-[200px]">{chat.message}</p>{chat.unread > 0 && <span className="bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">{chat.unread}</span>}</div></div></div>
             ))}
             {adsEnabled && <AdNative config={adConfig.native} />}
             <div className="h-20"></div>
@@ -704,18 +677,7 @@ export default function App() {
            {nearbyUsers.map((user, index) => (
             <React.Fragment key={user.id}>
               {adsEnabled && index > 0 && index % 3 === 0 && <AdNative config={adConfig.native} />}
-              <div className="flex items-center p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
-                <div className="relative">
-                  <img src={user.avatar} alt={user.name} className="w-14 h-14 rounded-full object-cover border border-gray-200" />
-                  {user.isOnline && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between">
-                    <div><h3 className="text-[16px] font-medium text-gray-800 flex items-center">{user.name}{user.verified && <span className="text-blue-500 ml-1 text-xs">✔️</span>}</h3><span className="text-sm text-gray-500">Dalam {user.distance}</span></div>
-                    {user.status && <div className="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded h-fit max-w-[80px] truncate">{user.status}</div>}
-                  </div>
-                </div>
-              </div>
+              <div className="flex items-center p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"><div className="relative"><img src={user.avatar} alt={user.name} className="w-14 h-14 rounded-full object-cover border border-gray-200" />{user.isOnline && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>}</div><div className="ml-3 flex-1"><div className="flex justify-between"><div><h3 className="text-[16px] font-medium text-gray-800 flex items-center">{user.name}{user.verified && <span className="text-blue-500 ml-1 text-xs">✔️</span>}</h3><span className="text-sm text-gray-500">Dalam {user.distance}</span></div>{user.status && <div className="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded h-fit max-w-[80px] truncate">{user.status}</div>}</div></div></div>
             </React.Fragment>
           ))}
         </div>
@@ -723,32 +685,13 @@ export default function App() {
     } else if (activeTab === 'moments') {
       return (
         <div className="bg-gray-100 min-h-screen pb-24">
-          <div className="relative h-48 bg-gray-800 mb-4">
-            <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" className="w-full h-full object-cover opacity-70" alt="cover"/>
-            <div className="absolute bottom-[-20px] right-4 flex items-end">
-               <div className="text-white mr-3 text-right mb-6 font-bold shadow-black drop-shadow-md"><div className="text-lg">iclik</div></div>
-               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=iclik" className="w-20 h-20 rounded-lg border-2 border-white bg-white object-cover" alt="me"/>
-            </div>
-          </div>
+          <div className="relative h-48 bg-gray-800 mb-4"><img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" className="w-full h-full object-cover opacity-70" alt="cover"/><div className="absolute bottom-[-20px] right-4 flex items-end"><div className="text-white mr-3 text-right mb-6 font-bold shadow-black drop-shadow-md"><div className="text-lg">iclik</div></div><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=iclik" className="w-20 h-20 rounded-lg border-2 border-white bg-white object-cover" alt="me"/></div></div>
           <div className="space-y-2">
             {moments.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">Belum ada momen.</div>}
             {moments.map((moment, index) => (
               <React.Fragment key={moment.id}>
                 {adsEnabled && index > 0 && index % 2 === 0 && <AdNative config={adConfig.native} />}
-                <div className="bg-white p-3 mb-2 shadow-sm">
-                  <div className="flex items-center mb-2">
-                    <img src={moment.avatar} className="w-10 h-10 rounded bg-gray-200 mr-3 object-cover" alt="av"/>
-                    <div><h3 className="text-[#4a66a0] font-bold text-sm">{moment.name}</h3><p className="text-[10px] text-gray-400">{moment.time}</p></div>
-                  </div>
-                  <div className="text-sm text-gray-800 mb-2 leading-relaxed">{moment.content}</div>
-                  {moment.image && (<div className="mb-2 rounded overflow-hidden"><img src={moment.image} className="w-full h-auto max-h-80 object-cover bg-gray-100" alt="moment" /></div>)}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-1">
-                     <div className="flex space-x-4">
-                        <button className="flex items-center space-x-1 text-gray-500 text-xs"><Heart size={16} /> <span>{moment.likes}</span></button>
-                        <button className="flex items-center space-x-1 text-gray-500 text-xs"><MessageSquare size={16} /> <span>{moment.comments}</span></button>
-                     </div>
-                  </div>
-                </div>
+                <div className="bg-white p-3 mb-2 shadow-sm"><div className="flex items-center mb-2"><img src={moment.avatar} className="w-10 h-10 rounded bg-gray-200 mr-3 object-cover" alt="av"/><div><h3 className="text-[#4a66a0] font-bold text-sm">{moment.name}</h3><p className="text-[10px] text-gray-400">{moment.time}</p></div></div><div className="text-sm text-gray-800 mb-2 leading-relaxed">{moment.content}</div>{moment.image && (<div className="mb-2 rounded overflow-hidden"><img src={moment.image} className="w-full h-auto max-h-80 object-cover bg-gray-100" alt="moment" /></div>)}<div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-1"><div className="flex space-x-4"><button className="flex items-center space-x-1 text-gray-500 text-xs"><Heart size={16} /> <span>{moment.likes}</span></button><button className="flex items-center space-x-1 text-gray-500 text-xs"><MessageSquare size={16} /> <span>{moment.comments}</span></button></div></div></div>
               </React.Fragment>
             ))}
           </div>
@@ -757,55 +700,10 @@ export default function App() {
     } else if (activeTab === 'me') {
       return (
         <div className="bg-gray-50 min-h-screen pb-24 font-sans">
-          {/* Static Profile Content */}
-          <div className="bg-white p-4 pb-2">
-            <div className="flex items-center mb-4">
-              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80" className="w-16 h-16 rounded-lg bg-gray-200 border border-gray-100 mr-4 object-cover" alt="profile" />
-              <div className="flex-1">
-                <div className="flex items-center mb-1">
-                  <h2 className="text-xl font-bold text-gray-800 mr-1">iclik</h2>
-                  <span className="bg-gray-200 rounded-full p-0.5"><CheckCircle size={12} className="text-gray-500 fill-white" /></span>
-                </div>
-                <div className="flex items-center space-x-6 text-gray-500 text-xs mt-2">
-                  <div className="flex items-center space-x-1 cursor-pointer"><QrCode size={16} className="text-[#009688]" /><span>Kode QR Saya</span></div>
-                  <div className="flex items-center space-x-1 cursor-pointer"><PictureIcon size={16} className="text-[#009688]" /><span>Kiriman Saya</span></div>
-                </div>
-              </div>
-              <div className="text-gray-300">{'>'}</div>
-            </div>
-            <div className="w-full bg-gradient-to-r from-orange-100 to-orange-50 border border-orange-200 rounded-xl p-4 mb-4 shadow-sm relative overflow-hidden">
-              <div className="relative z-10">
-                 <div className="flex items-center mb-1"><div className="w-5 h-5 bg-orange-400 rounded-full flex items-center justify-center mr-2 text-white text-[10px] font-bold">V</div><h3 className="text-orange-800 font-bold text-sm">MiChat VIP</h3></div>
-                 <p className="text-xs text-orange-700 mb-3 max-w-[70%]">Nikmati 5 keistimewaan utama setelah aktivasi</p>
-                 <div className="flex justify-end"><button className="bg-orange-400 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">Ambil Sekarang</button></div>
-              </div>
-            </div>
-            <div className="flex border-t border-gray-100 pt-2 pb-1">
-              <div className="flex-1 flex flex-col items-center justify-center border-r border-gray-100 relative">
-                <div className="absolute top-0 right-8 bg-red-500 text-white text-[9px] px-1 rounded-full font-bold">+2</div>
-                <div className="flex items-center space-x-1"><Eye size={20} className="text-purple-500" /><span className="text-lg font-bold text-gray-800">4</span></div>
-                <span className="text-[10px] text-gray-500 mt-1">Yang Melihat Saya</span>
-              </div>
-              <div className="flex-1 flex flex-col items-center justify-center relative">
-                <div className="absolute top-0 right-8 bg-red-500 text-white text-[9px] px-1 rounded-full font-bold">+20</div>
-                <div className="flex items-center space-x-1"><Heart size={20} className="text-pink-500 fill-current" /><span className="text-lg font-bold text-gray-800">20</span></div>
-                <span className="text-[10px] text-gray-500 mt-1">Penggemar</span>
-              </div>
-            </div>
-          </div>
-          
+          <div className="bg-white p-4 pb-2"><div className="flex items-center mb-4"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80" className="w-16 h-16 rounded-lg bg-gray-200 border border-gray-100 mr-4 object-cover" alt="profile" /><div className="flex-1"><div className="flex items-center mb-1"><h2 className="text-xl font-bold text-gray-800 mr-1">iclik</h2><span className="bg-gray-200 rounded-full p-0.5"><CheckCircle size={12} className="text-gray-500 fill-white" /></span></div><div className="flex items-center space-x-6 text-gray-500 text-xs mt-2"><div className="flex items-center space-x-1 cursor-pointer"><QrCode size={16} className="text-[#009688]" /><span>Kode QR Saya</span></div><div className="flex items-center space-x-1 cursor-pointer"><PictureIcon size={16} className="text-[#009688]" /><span>Kiriman Saya</span></div></div></div><div className="text-gray-300">{'>'}</div></div><div className="w-full bg-gradient-to-r from-orange-100 to-orange-50 border border-orange-200 rounded-xl p-4 mb-4 shadow-sm relative overflow-hidden"><div className="relative z-10"><div className="flex items-center mb-1"><div className="w-5 h-5 bg-orange-400 rounded-full flex items-center justify-center mr-2 text-white text-[10px] font-bold">V</div><h3 className="text-orange-800 font-bold text-sm">MiChat VIP</h3></div><p className="text-xs text-orange-700 mb-3 max-w-[70%]">Nikmati 5 keistimewaan utama setelah aktivasi</p><div className="flex justify-end"><button className="bg-orange-400 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">Ambil Sekarang</button></div></div></div><div className="flex border-t border-gray-100 pt-2 pb-1"><div className="flex-1 flex flex-col items-center justify-center border-r border-gray-100 relative"><div className="absolute top-0 right-8 bg-red-500 text-white text-[9px] px-1 rounded-full font-bold">+2</div><div className="flex items-center space-x-1"><Eye size={20} className="text-purple-500" /><span className="text-lg font-bold text-gray-800">4</span></div><span className="text-[10px] text-gray-500 mt-1">Yang Melihat Saya</span></div><div className="flex-1 flex flex-col items-center justify-center relative"><div className="absolute top-0 right-8 bg-red-500 text-white text-[9px] px-1 rounded-full font-bold">+20</div><div className="flex items-center space-x-1"><Heart size={20} className="text-pink-500 fill-current" /><span className="text-lg font-bold text-gray-800">20</span></div><span className="text-[10px] text-gray-500 mt-1">Penggemar</span></div></div></div>
           {adsEnabled && <AdBigProfile config={adConfig.profile} />}
-          
-          <div className="bg-white mt-3 px-4 py-3 flex items-center space-x-3">
-            <Star size={24} className="text-orange-400" />
-            <span className="text-sm text-gray-700 font-medium flex-1">Penilaian Anda</span>
-            <div className="flex space-x-1">{[1,2,3,4,5].map(i => <Star key={i} size={20} className="text-yellow-400 fill-current" />)}</div>
-          </div>
-          <div className="bg-white mt-3 mb-10">
-             <div className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"><Lock size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Privasi</span><span className="text-gray-300">{'>'}</span></div>
-             <div className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"><Info size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Tentang</span><span className="text-gray-300">{'>'}</span></div>
-             <div className="flex items-center p-4 hover:bg-gray-50 cursor-pointer"><Settings size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Pengaturan</span><span className="text-gray-300">{'>'}</span></div>
-          </div>
+          <div className="bg-white mt-3 px-4 py-3 flex items-center space-x-3"><Star size={24} className="text-orange-400" /><span className="text-sm text-gray-700 font-medium flex-1">Penilaian Anda</span><div className="flex space-x-1">{[1,2,3,4,5].map(i => <Star key={i} size={20} className="text-yellow-400 fill-current" />)}</div></div>
+          <div className="bg-white mt-3 mb-10"><div className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"><Lock size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Privasi</span><span className="text-gray-300">{'>'}</span></div><div className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"><Info size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Tentang</span><span className="text-gray-300">{'>'}</span></div><div className="flex items-center p-4 hover:bg-gray-50 cursor-pointer"><Settings size={20} className="text-[#009688] mr-4" /><span className="flex-1 text-sm text-gray-800">Pengaturan</span><span className="text-gray-300">{'>'}</span></div></div>
         </div>
       );
     }
@@ -813,113 +711,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans max-w-md mx-auto shadow-2xl relative overflow-hidden border-x border-gray-200">
-      
       {renderHeader()}
       {adsEnabled && activeTab !== 'me' && !activeChatUser && <AdBanner config={adConfig.banner} />}
-      
-      {activeChatUser ? (
-        <ChatRoom 
-          user={activeChatUser} 
-          autoReplyText={autoReplyText} 
-          onClose={handleCloseChat}
-          chatAdConfig={adConfig.chat} 
-          chatBubbleAdConfig={adConfig.chatBubble}
-          adsEnabled={adsEnabled}
-        />
-      ) : (
-        renderContent()
-      )}
-      
+      {activeChatUser ? (<ChatRoom user={activeChatUser} autoReplyText={autoReplyText} onClose={handleCloseChat} chatAdConfig={adConfig.chat} chatBubbleAdConfig={adConfig.chatBubble} adsEnabled={adsEnabled} />) : (renderContent())}
       {adsEnabled && showAnchor && !activeChatUser && <AdAnchor config={adConfig.anchor} onClose={() => setShowAnchor(false)} />}
-
-      {/* --- POP UP KONFIRMASI 18+ --- */}
-      {showAdultModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setShowAdultModal(false)}></div>
-           <div className="bg-white rounded-xl p-6 max-w-xs w-full relative z-10 shadow-2xl text-center animate-bounce-in transform transition-all scale-100">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner"><AlertTriangle size={32} className="text-red-600" /></div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Konten Dewasa 18+</h3>
-              <p className="text-sm text-gray-600 mb-6 leading-relaxed">Halaman ini mungkin memuat konten yang memerlukan kedewasaan. Apakah Anda berusia 18 tahun ke atas?</p>
-              <div className="flex space-x-3"><button onClick={() => setShowAdultModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">Batal</button><button onClick={confirmAdult} className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-md">Ya, Masuk</button></div>
-           </div>
-        </div>
-      )}
-
-      {/* --- BOTTOM NAV --- */}
-      {!activeChatUser && (
-        <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 flex justify-between items-center h-[60px] z-50 px-2">
-          <button onClick={() => setActiveTab('chat')} className={`flex flex-col items-center justify-center w-1/4 h-full relative ${activeTab === 'chat' ? 'text-[#009688]' : 'text-gray-500'}`}>
-            <div className="relative"><svg width="24" height="24" viewBox="0 0 24 24" fill={activeTab === 'chat' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-white">2</span></div><span className="text-[10px] mt-1 font-medium">Chat</span>
-          </button>
-          <button onClick={() => setActiveTab('friends')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'friends' ? 'text-[#009688]' : 'text-gray-500'}`}><UserPlus size={24} strokeWidth={activeTab === 'friends' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Teman</span></button>
-          <button onClick={() => handleProtectedTabClick('moments')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'moments' ? 'text-[#009688]' : 'text-gray-500'}`}><Aperture size={24} strokeWidth={activeTab === 'moments' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Momen</span></button>
-          <button onClick={() => handleProtectedTabClick('me')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'me' ? 'text-[#009688]' : 'text-gray-500'}`}><Menu size={24} strokeWidth={activeTab === 'me' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Saya</span></button>
-        </div>
-      )}
-
-      {/* --- HIDDEN ADMIN MODAL --- */}
-      {isAdminOpen && !isAuthenticated && (
-        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-xs p-6 relative animate-fade-in">
-            <button onClick={() => setIsAdminOpen(false)} className="absolute top-2 right-2 text-gray-400"><X size={20} /></button>
-            <div className="text-center mb-6">
-              <Settings className="text-red-600 mx-auto mb-2 w-10 h-10 bg-red-100 rounded-full p-2" />
-              <h2 className="text-xl font-bold text-gray-800">Admin Login</h2>
-            </div>
-            <form onSubmit={handleLogin}>
-              <input type="password" className="w-full border border-gray-300 rounded px-3 py-2 mb-3" placeholder="Kode Akses" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-              {errorMsg && <p className="text-red-500 text-xs mb-2">{errorMsg}</p>}
-              <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2 rounded">Masuk</button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- ADMIN DASHBOARD PANEL --- */}
+      {showAdultModal && (<div className="fixed inset-0 z-[60] flex items-center justify-center p-4"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setShowAdultModal(false)}></div><div className="bg-white rounded-xl p-6 max-w-xs w-full relative z-10 shadow-2xl text-center animate-bounce-in transform transition-all scale-100"><div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner"><AlertTriangle size={32} className="text-red-600" /></div><h3 className="text-lg font-bold text-gray-900 mb-2">Konten Dewasa 18+</h3><p className="text-sm text-gray-600 mb-6 leading-relaxed">Halaman ini mungkin memuat konten yang memerlukan kedewasaan. Apakah Anda berusia 18 tahun ke atas?</p><div className="flex space-x-3"><button onClick={() => setShowAdultModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">Batal</button><button onClick={confirmAdult} className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-md">Ya, Masuk</button></div></div></div>)}
+      {!activeChatUser && (<div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 flex justify-between items-center h-[60px] z-50 px-2"><button onClick={() => setActiveTab('chat')} className={`flex flex-col items-center justify-center w-1/4 h-full relative ${activeTab === 'chat' ? 'text-[#009688]' : 'text-gray-500'}`}><div className="relative"><svg width="24" height="24" viewBox="0 0 24 24" fill={activeTab === 'chat' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-white">2</span></div><span className="text-[10px] mt-1 font-medium">Chat</span></button><button onClick={() => setActiveTab('friends')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'friends' ? 'text-[#009688]' : 'text-gray-500'}`}><UserPlus size={24} strokeWidth={activeTab === 'friends' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Teman</span></button><button onClick={() => handleProtectedTabClick('moments')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'moments' ? 'text-[#009688]' : 'text-gray-500'}`}><Aperture size={24} strokeWidth={activeTab === 'moments' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Momen</span></button><button onClick={() => handleProtectedTabClick('me')} className={`flex flex-col items-center justify-center w-1/4 h-full ${activeTab === 'me' ? 'text-[#009688]' : 'text-gray-500'}`}><Menu size={24} strokeWidth={activeTab === 'me' ? 2.5 : 2} /><span className="text-[10px] mt-1 font-medium">Saya</span></button></div>)}
+      {isAdminOpen && !isAuthenticated && (<div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4"><div className="bg-white rounded-lg shadow-xl w-full max-w-xs p-6 relative animate-fade-in"><button onClick={() => setIsAdminOpen(false)} className="absolute top-2 right-2 text-gray-400"><X size={20} /></button><div className="text-center mb-6"><Settings className="text-red-600 mx-auto mb-2 w-10 h-10 bg-red-100 rounded-full p-2" /><h2 className="text-xl font-bold text-gray-800">Admin Login</h2></div><form onSubmit={handleLogin}><input type="password" className="w-full border border-gray-300 rounded px-3 py-2 mb-3" placeholder="Kode Akses" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />{errorMsg && <p className="text-red-500 text-xs mb-2">{errorMsg}</p>}<button type="submit" className="w-full bg-teal-600 text-white font-bold py-2 rounded">Masuk</button></form></div></div>)}
       {isAdminOpen && isAuthenticated && (
         <div className="fixed inset-0 bg-gray-100 z-[70] overflow-y-auto animate-slide-up">
-          <div className="bg-gray-900 text-white px-4 py-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
-            <span className="font-bold">Admin Panel</span>
-            <button onClick={handleLogout} className="bg-red-600 px-3 py-1 rounded text-xs">Keluar</button>
-          </div>
+          <div className="bg-gray-900 text-white px-4 py-4 flex justify-between items-center sticky top-0 z-50 shadow-md"><span className="font-bold">Admin Panel</span><button onClick={handleLogout} className="bg-red-600 px-3 py-1 rounded text-xs">Keluar</button></div>
           <div className="p-4 pb-20 space-y-4">
-             <div className="bg-white p-4 rounded shadow flex justify-between items-center">
-               <span className="font-bold text-gray-700">Status Global Iklan</span>
-               <button onClick={() => setAdsEnabled(!adsEnabled)} className={`px-4 py-2 rounded text-white font-bold ${adsEnabled ? 'bg-green-500' : 'bg-red-500'}`}>{adsEnabled ? 'ON' : 'OFF'}</button>
-             </div>
-
+             <div className="bg-white p-4 rounded shadow flex justify-between items-center"><span className="font-bold text-gray-700">Status Global Iklan</span><button onClick={() => setAdsEnabled(!adsEnabled)} className={`px-4 py-2 rounded text-white font-bold ${adsEnabled ? 'bg-green-500' : 'bg-red-500'}`}>{adsEnabled ? 'ON' : 'OFF'}</button></div>
              {/* MANAJEMEN IKLAN SECTION */}
-             <div className="bg-white rounded shadow overflow-hidden">
-               <h3 className="bg-purple-50 px-4 py-3 border-b font-bold text-purple-800 text-sm flex items-center"><Megaphone size={16} className="mr-2" /> Manajemen Kode & Konten Iklan</h3>
-               <div className="p-4">
-                 <div className="mb-4">
-                   <label className="block text-xs font-bold text-gray-600 mb-1">Pilih Jenis Iklan:</label>
-                   <div className="flex space-x-2 flex-wrap gap-2">
-                     {['banner', 'native', 'anchor', 'profile', 'chat', 'chatBubble'].map(type => (
-                       <button key={type} onClick={() => setEditingAdType(type)} className={`px-3 py-1.5 rounded text-xs font-bold capitalize border ${editingAdType === type ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'}`}>{type}</button>
-                     ))}
-                   </div>
-                 </div>
-                 <div className="space-y-3 bg-gray-50 p-3 rounded border">
-                    <div className="flex justify-between items-center border-b pb-2 mb-2">
-                      <h4 className="text-xs font-bold text-gray-500 uppercase">Edit {editingAdType}</h4>
-                      <label className="flex items-center space-x-2 text-xs font-bold text-blue-600 cursor-pointer bg-blue-50 px-2 py-1 rounded"><input type="checkbox" checked={adEditForm.useHtml || false} onChange={e => setAdEditForm({...adEditForm, useHtml: e.target.checked})} /><Code size={12} /><span>Gunakan Custom HTML</span></label>
-                    </div>
-                    {adEditForm.useHtml ? (
-                       <div><label className="block text-[10px] font-bold text-gray-500 mb-1">Kode HTML:</label><textarea placeholder="<div>Kode iklan Anda di sini...</div>" className="w-full border rounded px-2 py-1.5 text-sm h-32 font-mono text-xs" value={adEditForm.htmlContent || ''} onChange={e => setAdEditForm({...adEditForm, htmlContent: e.target.value})} /><p className="text-[10px] text-gray-400 mt-1">*Masukkan script iklan atau elemen HTML valid.</p></div>
-                    ) : (
-                      <>
-                        {editingAdType === 'banner' && (<><input type="text" placeholder="Teks Banner" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.text || ''} onChange={e => setAdEditForm({...adEditForm,text: e.target.value})} /><div className="flex space-x-2"><input type="text" placeholder="Warna Awal (e.g blue-500)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorFrom || ''} onChange={e => setAdEditForm({...adEditForm, colorFrom: e.target.value})} /><input type="text" placeholder="Warna Akhir (e.g cyan-400)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorTo || ''} onChange={e => setAdEditForm({...adEditForm, colorTo: e.target.value})} /></div></>)}
-                        {(['native', 'anchor', 'profile', 'chat', 'chatBubble'].includes(editingAdType)) && (<><input type="text" placeholder="Judul Iklan" className="w-full border rounded px-2 py-1.5 text-sm font-bold" value={adEditForm.title || ''} onChange={e => setAdEditForm({...adEditForm, title: e.target.value})} /><textarea placeholder="Deskripsi Iklan" className="w-full border rounded px-2 py-1.5 text-sm h-16" value={adEditForm.desc || ''} onChange={e => setAdEditForm({...adEditForm, desc: e.target.value})} /></>)}
-                        {(['native', 'profile', 'chatBubble'].includes(editingAdType)) && (<input type="text" placeholder="URL Gambar / Background" className="w-full border rounded px-2 py-1.5 text-sm" value={['native', 'chatBubble'].includes(editingAdType) ? (adEditForm.image || '') : (adEditForm.bgImage || '')} onChange={e => (['native', 'chatBubble'].includes(editingAdType)) ? setAdEditForm({...adEditForm, image: e.target.value}) : setAdEditForm({...adEditForm, bgImage: e.target.value})} />)}
-                        {(['anchor', 'chat'].includes(editingAdType)) && (<div className="flex space-x-2"><input type="text" placeholder="Teks Icon (e.g Go)" className="w-1/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.iconText || ''} onChange={e => setAdEditForm({...adEditForm, iconText: e.target.value})} /><input type="text" placeholder="Teks Tombol" className="w-2/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.btnText || ''} onChange={e => setAdEditForm({...adEditForm, btnText: e.target.value})} /></div>)}
-                        {(['profile', 'chatBubble'].includes(editingAdType)) && (<input type="text" placeholder="Teks Tombol" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.btnText || ''} onChange={e => setAdEditForm({...adEditForm, btnText: e.target.value})} />)}
-                      </>
-                    )}
-                    <button onClick={handleSaveAdConfig} className="w-full bg-purple-600 text-white font-bold py-2 rounded text-sm mt-2">Simpan Konfigurasi</button>
-                 </div>
-               </div>
-             </div>
+             <div className="bg-white rounded shadow overflow-hidden"><h3 className="bg-purple-50 px-4 py-3 border-b font-bold text-purple-800 text-sm flex items-center"><Megaphone size={16} className="mr-2" /> Manajemen Kode & Konten Iklan</h3><div className="p-4"><div className="mb-4"><label className="block text-xs font-bold text-gray-600 mb-1">Pilih Jenis Iklan:</label><div className="flex space-x-2 flex-wrap gap-2">{['banner', 'native', 'anchor', 'profile', 'chat', 'chatBubble'].map(type => (<button key={type} onClick={() => setEditingAdType(type)} className={`px-3 py-1.5 rounded text-xs font-bold capitalize border ${editingAdType === type ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'}`}>{type}</button>))}</div></div><div className="space-y-3 bg-gray-50 p-3 rounded border"><div className="flex justify-between items-center border-b pb-2 mb-2"><h4 className="text-xs font-bold text-gray-500 uppercase">Edit {editingAdType}</h4><label className="flex items-center space-x-2 text-xs font-bold text-blue-600 cursor-pointer bg-blue-50 px-2 py-1 rounded"><input type="checkbox" checked={adEditForm.useHtml || false} onChange={e => setAdEditForm({...adEditForm, useHtml: e.target.checked})} /><Code size={12} /><span>Gunakan Custom HTML</span></label></div>{adEditForm.useHtml ? (<div><label className="block text-[10px] font-bold text-gray-500 mb-1">Kode HTML:</label><textarea placeholder="<div>Kode iklan Anda di sini...</div>" className="w-full border rounded px-2 py-1.5 text-sm h-32 font-mono text-xs" value={adEditForm.htmlContent || ''} onChange={e => setAdEditForm({...adEditForm, htmlContent: e.target.value})} /><p className="text-[10px] text-gray-400 mt-1">*Masukkan script iklan atau elemen HTML valid.</p></div>) : (<>{editingAdType === 'banner' && (<><input type="text" placeholder="Teks Banner" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.text || ''} onChange={e => setAdEditForm({...adEditForm,text: e.target.value})} /><div className="flex space-x-2"><input type="text" placeholder="Warna Awal (e.g blue-500)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorFrom || ''} onChange={e => setAdEditForm({...adEditForm, colorFrom: e.target.value})} /><input type="text" placeholder="Warna Akhir (e.g cyan-400)" className="w-1/2 border rounded px-2 py-1.5 text-sm" value={adEditForm.colorTo || ''} onChange={e => setAdEditForm({...adEditForm, colorTo: e.target.value})} /></div></>)}{( ['native', 'anchor', 'profile', 'chat', 'chatBubble'].includes(editingAdType)) && (<><input type="text" placeholder="Judul Iklan" className="w-full border rounded px-2 py-1.5 text-sm font-bold" value={adEditForm.title || ''} onChange={e => setAdEditForm({...adEditForm, title: e.target.value})} /><textarea placeholder="Deskripsi Iklan" className="w-full border rounded px-2 py-1.5 text-sm h-16" value={adEditForm.desc || ''} onChange={e => setAdEditForm({...adEditForm, desc: e.target.value})} /></>)}{( ['native', 'profile', 'chatBubble'].includes(editingAdType)) && (<input type="text" placeholder="URL Gambar / Background" className="w-full border rounded px-2 py-1.5 text-sm" value={['native', 'chatBubble'].includes(editingAdType) ? (adEditForm.image || '') : (adEditForm.bgImage || '')} onChange={e => (['native', 'chatBubble'].includes(editingAdType)) ? setAdEditForm({...adEditForm, image: e.target.value}) : setAdEditForm({...adEditForm, bgImage: e.target.value})} />)}{( ['anchor', 'chat'].includes(editingAdType)) && (<div className="flex space-x-2"><input type="text" placeholder="Teks Icon (e.g Go)" className="w-1/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.iconText || ''} onChange={e => setAdEditForm({...adEditForm, iconText: e.target.value})} /><input type="text" placeholder="Teks Tombol" className="w-2/3 border rounded px-2 py-1.5 text-sm" value={adEditForm.btnText || ''} onChange={e => setAdEditForm({...adEditForm, btnText: e.target.value})} /></div>)}{( ['profile', 'chatBubble'].includes(editingAdType)) && (<input type="text" placeholder="Teks Tombol" className="w-full border rounded px-2 py-1.5 text-sm" value={adEditForm.btnText || ''} onChange={e => setAdEditForm({...adEditForm, btnText: e.target.value})} />)}</>)}<button onClick={handleSaveAdConfig} className="w-full bg-purple-600 text-white font-bold py-2 rounded text-sm mt-2">Simpan Konfigurasi</button></div></div></div>
              
              {/* MOMENTS, USERS, CHATS MANAGEMENT UI (Keep same structure, logic updated) */}
              <div className="bg-white rounded shadow overflow-hidden">
@@ -956,4 +761,3 @@ export default function App() {
     </div>
   );
 }
-
